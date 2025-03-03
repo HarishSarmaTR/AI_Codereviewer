@@ -5,11 +5,10 @@ from github import Github
 import re
 
 # Set your environment variables
-ESSO_TOKEN = os.getenv("OPEN_ARENA_TOKEN")
 WORKFLOW_ID = os.getenv("WORKFLOW_ID")
 
 # Set up GitHub access
-g = Github(os.getenv("TOKEN_GITHUB"))
+g = Github(os.getenv("GITHUB_TOKEN"))
 repo = g.get_repo("REPOSITORY_NAME")
 pr = repo.get_pull(PULL_REQUEST_NUMBER)
 

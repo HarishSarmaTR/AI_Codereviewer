@@ -22,7 +22,7 @@ jobs:
 
       - name: Validate Environment Variables
         run: |
-          if [ -z "${{ env.TOKEN_GITHUB }}" ] || [ -z "${{ env.OPEN_ARENA_TOKEN }}" ]; then
+          if [ -z "${{ env.GH_TOKEN }}" ] || [ -z "${{ env.OPEN_ARENA_TOKEN }}" ]; then
             echo "Missing required environment variables (TOKEN_GITHUB or OPEN_ARENA_TOKEN). Exiting."
             exit 1
           fi
@@ -30,7 +30,7 @@ jobs:
 
       - name: Run Code review with AI
         env:
-          TOKEN_GITHUB: ${{ env.TOKEN_GITHUB }}
+          GITHUB_TOKEN: ${{ env.GH_TOKEN }}
           OPEN_ARENA_TOKEN: ${{ env.OPEN_ARENA_TOKEN }}
           GITHUB_PR_URL: ${{ github.event.pull_request.url }}
           WORKFLOW_ID: "80f448d2-fd59-440f-ba24-ebc3014e1fdf"  # Replace with your actual workflow ID

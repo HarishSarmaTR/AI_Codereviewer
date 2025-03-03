@@ -28,10 +28,10 @@ jobs:
           fi
           echo "All required secrets are available."
 
-      - name: Run Code review with AI
+      - name: Run AI Code Reviewer
         env:
           GITHUB_TOKEN: ${{ secrets.token_github }}
           OPEN_ARENA_TOKEN: ${{ secrets.open_arena_token }}
           GITHUB_PR_URL: ${{ github.event.pull_request.url }}
-          WORKFLOW_ID: "<your_workflow_id>"  # Replace with your actual workflow ID
+          WORKFLOW_ID: "8556ba87-acf8-4049-98a3-fc62a300656c"  # Replace with your actual workflow ID
         run: python3 scripts/ai_code_reviewer.py

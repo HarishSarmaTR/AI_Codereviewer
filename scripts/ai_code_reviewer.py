@@ -19,7 +19,7 @@ def review_code(diff, open_arena_token, workflow_id, retries=3, delay=10):
     """Sends the diff to the Open Arena API for review and retrieves comments."""
     headerss = {'Authorization': f'Bearer {open_arena_token}', 'Content-Type': 'application/json'}
     data = {
-        "workflow_id": 8556ba87-acf8-4049-98a3-fc62a300656c,
+        "workflow_id": "8556ba87-acf8-4049-98a3-fc62a300656c",
         "query": diff,
         "is_persistence_allowed": False,
         "modelparams": {

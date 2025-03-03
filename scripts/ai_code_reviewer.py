@@ -4,67 +4,51 @@ import json
 import re
 
 # Set your environment variables
-WORKFLOW_ID = os.getenv("WORKFLOW_ID")
-
-# Set up GitHub access
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-repo = os.getenv("Code-review-with-AI")
-pr = os.getenv("PULL_REQUEST_NUMBER")
-oa_token = os.getenv("OPEN_ARENA_TOKEN")
+REPOSITORY_NAME = os.getenv("REPOSITORY_NAME")
+PULL_REQUEST_NUMBER = os.getenv("PULL_REQUEST_NUMBER")
+WORKFLOW_ID = os.getenv("WORKFLOW_ID")
+OA_TOKEN = os.getenv("OPEN_ARENA_TOKEN")
 
-# Function to analyze code and return feedback using Open Arena API
-def analyze_code(file_content):
+# Function to get files changed in a pull request
+def get_pr_files(repo_name, pr_number):
+    url = f"https://api.github.com/repos/{repo_name}/pulls/{pr_number}/files"
     headers = {
-        "Authorization": f"Bearer {oa_token}",
-        "Content-Type": "application/json"
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()
+
+# Mock function to analyze code (replace with actual AI model call)
+def analyze_code(file_content):
+    # Simulate AI feedback
+    return f"Feedback for code:\n{file_content[:100]}..."  # Truncate for example
+
+# Function to post a comment to a pull request
+def post_pr_comment(repo_name, pr_number, comment_body):
+    url = f"https://api.github.com/repos/{repo_name}/issues/{pr_number}/comments"
+    headers = {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
     }
     data = {
-        "workflow_id": WORKFLOW_ID,
-        "query": file_content,
-        "is_persistence_allowed": False,
-        "modelparams": {
-            "openai_gpt-4-turbo": {
-                "system_prompt": "You are an experienced code reviewer. Provide feedback on the code changes.",
-                "temperature": 0.5,
-                "max_tokens": 800
-            }
-        }
+        "body": comment_body
     }
-    try:
-        response = requests.post("https://aiopenarena.gcs.int.thomsonreuters.com/v1/inference", headers=headers, json=data)
-        response.raise_for_status()
-        return response.json().get('answer', '').strip()
-    except requests.exceptions.RequestException as e:
-        print(f"Error during API request: {e}")
-        return None
+    response = requests.post(url, headers=headers, json=data)
+    response.raise_for_status()
+    return response.json()
 
-for file in pr.get_files():
-    response = analyze_code(file.patch)
-    if response:
-        comment_body = response.splitlines()
+# Main script to review code changes
+try:
+    files = get_pr_files(REPOSITORY_NAME, PULL_REQUEST_NUMBER)
+    for file in files:
+        feedback = analyze_code(file['patch'])
+        if feedback:
+            post_pr_comment(REPOSITORY_NAME, PULL_REQUEST_NUMBER, f"File: {file['filename']}\n{feedback}")
+            print(f"Posted feedback for {file['filename']}")
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 
-        for commit in pr.get_commits():
-            for line_content in comment_body:
-                if line_content:
-                    match = re.search(r'(?i)lines? (\d+)', line_content)
-                    if match:
-                        line_position = int(match.group(1))
-                        try:
-                            pr.create_review_comment(
-                                body=line_content,
-                                commit=commit,
-                                path=file.filename,
-                                line=line_position,
-                                side="LEFT"
-                            )
-                            print(f"Commented on PR #{pr.number}: {line_content}")
-                        except Exception as e:
-                            print(f"Failed to comment on PR: {e}")
-
-        try:
-            pr.create_issue_comment("Reviewed code and added some comments, please have a look and resolve")
-            print(f"Added general comment to PR #{pr.number}")
-        except Exception as e:
-            print(f"Failed to add general comment to PR: {e}")
-
-print("Code review by AI has been completed, please check PR for details...")
+print("AI Code Review completed.")

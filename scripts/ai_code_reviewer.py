@@ -42,11 +42,11 @@ def post_pr_comment(repo_name, pr_number, comment_body):
 
 # Main script to review code changes
 try:
-    files = get_pr_files(REPOSITORY_NAME, PULL_REQUEST_NUMBER)
+    files = get_pr_files(repo_name, pr_number)
     for file in files:
         feedback = analyze_code(file['patch'])
         if feedback:
-            post_pr_comment(REPOSITORY_NAME, PULL_REQUEST_NUMBER, f"File: {file['filename']}\n{feedback}")
+            post_pr_comment(repo_name, pr_number, f"File: {file['filename']}\n{feedback}")
             print(f"Posted feedback for {file['filename']}")
 except requests.exceptions.RequestException as e:
     print(f"Error: {e}")

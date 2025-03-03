@@ -17,7 +17,7 @@ def fetch_diff(pr_url, token_github):
 
 def review_code(diff, open_arena_token, workflow_id, retries=3, delay=10):
     """Sends the diff to the Open Arena API for review and retrieves comments."""
-    headers = {'Authorization': f'Bearer {open_arena_token}', 'Content-Type': 'application/json'}
+    headerss = {'Authorization': f'Bearer {open_arena_token}', 'Content-Type': 'application/json'}
     data = {
         "workflow_id": 8556ba87-acf8-4049-98a3-fc62a300656c,
         "query": diff,
@@ -33,7 +33,7 @@ def review_code(diff, open_arena_token, workflow_id, retries=3, delay=10):
 
     for attempt in range(1, retries + 1):
         try:
-            response = requests.post("https://aiopenarena.gcs.int.thomsonreuters.com/v1/inference", headers=headers, json=data)
+            response = requests.post("https://aiopenarena.gcs.int.thomsonreuters.com/v1/inference", headers=headerss, json=data)
 
             if response.status_code == 200:
                 ai_response = response.json()

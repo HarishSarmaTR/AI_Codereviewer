@@ -15,48 +15,38 @@ def fetch_diff(pr_url, github_token):
     except requests.RequestException as e:
         raise Exception(f"Error fetching PR diff: {e}")
 
-def review_code(diff, openai_api_key, retries=3, delay=10):
-    """Sends the diff to the OpenAI API for review and retrieves comments."""
-    headers = {'Authorization': f'Bearer {openai_api_key}', 'Content-Type': 'application/json'}
+def review_code(diff, open_arena_token, workflow_id, retries=3, delay=10):
+    """Sends the diff to the Open Arena API for review and retrieves comments."""
+    headers = {'Authorization': f'Bearer {open_arena_token}', 'Content-Type': 'application/json'}
     data = {
-        "model": "gpt-3.5-turbo-instruct-0914",
-        "messages": [
-            {"role": "system", "content": "You are a code reviewer."},
-            {"role": "user", "content": f"Review the following code diff and suggest improvements:\n{diff}"}
-        ],
-        "max_tokens": 800,
-        "temperature": 0.5
+        "workflow_id": 8556ba87-acf8-4049-98a3-fc62a300656c,
+        "query": diff,
+        "is_persistence_allowed": False,
+        "modelparams": {
+            "openai_gpt-4o": {
+                "system_prompt": "You are an experienced code reviewer. Provide feedback on the code changes.",
+                "temperature": 0.5,
+                "max_tokens": 14000
+            }
+        }
     }
 
     for attempt in range(1, retries + 1):
         try:
-            response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
-
-            # Print the response headers to help debug rate limits
-            print("Response Headers:", response.headers)
+            response = requests.post("https://aiopenarena.gcs.int.thomsonreuters.com/v1/inference", headers=headers, json=data)
 
             if response.status_code == 200:
                 ai_response = response.json()
-                print(f"OpenAI API Usage: {ai_response.get('usage', {})}")
-                return ai_response['choices'][0]['message']['content'].strip()
-            elif response.status_code == 429:
-                # Check rate limit and calculate wait time
-                remaining = int(response.headers.get('X-RateLimit-Remaining', 0))
-                reset_time = int(response.headers.get('X-RateLimit-Reset', time.time()))
-                
-                if remaining == 0:
-                    wait_time = max(reset_time - time.time(), delay)
-                    print(f"Rate limit exceeded. Retrying in {wait_time}s...")
-                    time.sleep(wait_time)  # Wait until the rate limit resets
-                else:
-                    print(f"Rate limit exceeded. Retrying in {delay}s...")
-                    time.sleep(delay)  # Wait for a fixed delay before retrying
+                return ai_response['answer'].strip()
             else:
-                raise Exception(f"OpenAI Error: {response.status_code}, {response.text}")
+                raise Exception(f"Open Arena Error: {response.status_code}, {response.text}")
         except Exception as e:
             print(f"Attempt {attempt}/{retries} failed: {e}")
+            if attempt < retries:
+                print(f"Retrying in {delay}s...")
+                time.sleep(delay)
 
-     # Fallback response when API fails after retries
+    # Fallback response when API fails after retries
     return (
         "AI review unavailable at the moment. Here are some general suggestions:\n\n"
         "1. Ensure proper error handling is in place for edge cases.\n"
@@ -88,22 +78,24 @@ def validate_environment_variables(*vars):
 def main():
     """Main function to fetch PR diff, review code, and post comments."""
     try:
-        validate_environment_variables("GITHUB_PR_URL", "GITHUB_TOKEN", "OPENAI_API_KEY")
+        validate_environment_variables("GITHUB_PR_URL", "GITHUB_TOKEN", "OPEN_ARENA_TOKEN", "WORKFLOW_ID")
         pr_url = os.getenv("GITHUB_PR_URL")
         github_token = os.getenv("GITHUB_TOKEN")
-        openai_api_key = os.getenv("OPENAI_API_KEY")
+        open_arena_token = os.getenv("OPEN_ARENA_TOKEN")
+        workflow_id = os.getenv("WORKFLOW_ID")
 
         print(f"PR URL: {pr_url}")
         print(f"GitHub Token: {'Provided' if github_token else 'Missing'}")
-        print(f"OpenAI API Key: {'Provided' if openai_api_key else 'Missing'}")
+        print(f"Open Arena Token: {'Provided' if open_arena_token else 'Missing'}")
+        print(f"Workflow ID: {workflow_id}")
 
         # Fetch PR diff
         print("Fetching PR diff...")
         diff = fetch_diff(pr_url, github_token)
 
         # Review code
-        print("Sending diff to OpenAI for review...")
-        ai_review = review_code(diff, openai_api_key)
+        print("Sending diff to Open Arena for review...")
+        ai_review = review_code(diff, open_arena_token, workflow_id)
         if not ai_review:
             ai_review = "No significant suggestions provided."
 

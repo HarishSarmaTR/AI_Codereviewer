@@ -28,7 +28,7 @@ def review_code(diff, open_arena_token):
     }
 
     try:
-        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
+        response = requests.post("https://aiopenarena.gcs.int.thomsonreuters.com/v1/inference", headers=headers, json=data)
         print("Response Headers:", response.headers)
 
         if response.status_code == 200:

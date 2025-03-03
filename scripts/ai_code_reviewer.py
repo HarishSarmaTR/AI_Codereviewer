@@ -14,9 +14,9 @@ def fetch_diff(pr_url, github_token):
     except requests.RequestException as e:
         raise Exception(f"Error fetching PR diff: {e}")
 
-def review_code(diff, openai_api_key):
+def review_code(diff, open_arena_token):
     """Sends the diff to the OpenAI API for review and retrieves comments."""
-    headers = {'Authorization': f'Bearer {openai_api_key}', 'Content-Type': 'application/json'}
+    headers = {'Authorization': f'Bearer {open_arena_token}', 'Content-Type': 'application/json'}
     data = {
         "model": "gpt-4-turbo",
         "messages": [
@@ -84,11 +84,11 @@ def main():
         validate_environment_variables("GITHUB_PR_URL", "GITHUB_TOKEN", "OPEN_ARENA_TOKEN")
         pr_url = os.getenv("GITHUB_PR_URL")
         github_token = os.getenv("GITHUB_TOKEN")
-        openai_api_key = os.getenv("OPEN_ARENA_TOKEN")
+        open_arena_token = os.getenv("OPEN_ARENA_TOKEN")
 
         print(f"PR URL: {pr_url}")
         print(f"GitHub Token: {'Provided' if github_token else 'Missing'}")
-        print(f"OpenAI API Key: {'Provided' if openai_api_key else 'Missing'}")
+        print(f"OpenAI API Key: {'Provided' if open_arena_token else 'Missing'}")
 
         # Fetch PR diff
         print("Fetching PR diff...")
@@ -96,7 +96,7 @@ def main():
 
         # Review code
         print("Sending diff to OpenAI for review...")
-        ai_review = review_code(diff, openai_api_key)
+        ai_review = review_code(diff, open_arena_token)
         if not ai_review:
             ai_review = "No significant suggestions provided."
 

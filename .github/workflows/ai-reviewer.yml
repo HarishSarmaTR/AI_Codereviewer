@@ -28,7 +28,7 @@ jobs:
           fi
           echo "All required secrets are available."
 
-      - name: Run AI Code Reviewer
+      - name: Run Code review with AI
         env:
           GITHUB_TOKEN: ${{ secrets.token_github }}
           OPEN_ARENA_TOKEN: ${{ secrets.open_arena_token }}

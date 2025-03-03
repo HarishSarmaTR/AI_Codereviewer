@@ -81,7 +81,7 @@ def validate_environment_variables(*vars):
 def main():
     """Main function to fetch PR diff, review code, and post comments."""
     try:
-        validate_environment_variables("GITHUB_PR_URL", "GITHUB_TOKEN", "OPENAI_API_KEY")
+        validate_environment_variables("GITHUB_PR_URL", "GITHUB_TOKEN", "OPEN_ARENA_TOKEN")
         pr_url = os.getenv("GITHUB_PR_URL")
         github_token = os.getenv("GITHUB_TOKEN")
         openai_api_key = os.getenv("OPEN_ARENA_TOKEN")

@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Validate Environment Variables
+      - name: Validate Secret Tokens
         run: |
           if [ -z "${{ secrets.GH_TOKEN }}" ] || [ -z "${{ secrets.OPEN_ARENA_TOKEN }}" ]; then
             echo "Missing required environment variables (GH_TOKEN or OPEN_ARENA_TOKEN). Exiting."

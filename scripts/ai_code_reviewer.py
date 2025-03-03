@@ -3,9 +3,9 @@ import requests
 import json
 import time
 
-def fetch_diff(pr_url, github_token):
+def fetch_diff(pr_url, token_github):
     """Fetches the diff of the pull request from GitHub."""
-    headers = {'Authorization': f'token {github_token}', 'Accept': 'application/vnd.github.v3+json'}
+    headers = {'Authorization': f'token {token_github}', 'Accept': 'application/vnd.github.v3+json'}
     try:
         response = requests.get(f"{pr_url}/files", headers=headers)
         response.raise_for_status()
@@ -56,13 +56,13 @@ def review_code(diff, open_arena_token, workflow_id, retries=3, delay=10):
         "5. Follow coding standards and naming conventions for consistency."
     )
 
-def post_comment(pr_url, comment, github_token):
+def post_comment(pr_url, comment, token_github):
     """Posts a comment to the pull request on GitHub."""
     try:
         repo = os.getenv('GITHUB_REPOSITORY')
         issue_number = pr_url.split('/')[-1]
         comments_url = f"https://api.github.com/repos/{repo}/issues/{issue_number}/comments"
-        headers = {'Authorization': f'token {github_token}', 'Content-Type': 'application/json'}
+        headers = {'Authorization': f'token {token_github}', 'Content-Type': 'application/json'}
         response = requests.post(comments_url, headers=headers, json={"body": comment})
         response.raise_for_status()
         print("Comment posted successfully.")
@@ -78,20 +78,20 @@ def validate_environment_variables(*vars):
 def main():
     """Main function to fetch PR diff, review code, and post comments."""
     try:
-        validate_environment_variables("GITHUB_PR_URL", "GITHUB_TOKEN", "OPEN_ARENA_TOKEN", "WORKFLOW_ID")
+        validate_environment_variables("GITHUB_PR_URL", "token_github", "OPEN_ARENA_TOKEN", "WORKFLOW_ID")
         pr_url = os.getenv("GITHUB_PR_URL")
-        github_token = os.getenv("GITHUB_TOKEN")
+        token_github = os.getenv("token_github")
         open_arena_token = os.getenv("OPEN_ARENA_TOKEN")
         workflow_id = os.getenv("WORKFLOW_ID")
 
         print(f"PR URL: {pr_url}")
-        print(f"GitHub Token: {'Provided' if github_token else 'Missing'}")
+        print(f"GitHub Token: {'Provided' if token_github else 'Missing'}")
         print(f"Open Arena Token: {'Provided' if open_arena_token else 'Missing'}")
         print(f"Workflow ID: {workflow_id}")
 
         # Fetch PR diff
         print("Fetching PR diff...")
-        diff = fetch_diff(pr_url, github_token)
+        diff = fetch_diff(pr_url, token_github)
 
         # Review code
         print("Sending diff to Open Arena for review...")
@@ -101,7 +101,7 @@ def main():
 
         # Post review comment
         print("Posting review comment...")
-        post_comment(pr_url, ai_review, github_token)
+        post_comment(pr_url, ai_review, token_github)
 
         print("AI review process completed successfully.")
 

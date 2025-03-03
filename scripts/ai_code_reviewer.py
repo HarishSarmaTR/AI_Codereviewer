@@ -11,11 +11,12 @@ WORKFLOW_ID = os.getenv("WORKFLOW_ID")
 g = Github(os.getenv("GITHUB_TOKEN"))
 repo = g.get_repo("REPOSITORY_NAME")
 pr = repo.get_pull(PULL_REQUEST_NUMBER)
+oa = Github(os.getenv("OPEN_ARENA_TOKEN"))
 
 # Function to analyze code and return feedback using Open Arena API
 def analyze_code(file_content):
     headers = {
-        "Authorization": f"Bearer {OPEN_ARENA_TOKEN}",
+        "Authorization": f"Bearer {oa}",
         "Content-Type": "application/json"
     }
     data = {

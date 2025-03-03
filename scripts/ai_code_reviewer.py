@@ -5,8 +5,8 @@ import re
 
 # Set your environment variables
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-REPOSITORY_NAME = os.getenv("REPOSITORY_NAME")
-PULL_REQUEST_NUMBER = os.getenv("PULL_REQUEST_NUMBER")
+repo_name = os.getenv("REPOSITORY_NAME")
+pr_number = os.getenv("PULL_REQUEST_NUMBER")
 WORKFLOW_ID = os.getenv("WORKFLOW_ID")
 OA_TOKEN = os.getenv("OPEN_ARENA_TOKEN")
 

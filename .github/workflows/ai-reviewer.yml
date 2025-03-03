@@ -1,4 +1,4 @@
-name: AI Code Reviewer
+name: Code review with AI
 
 on:
   pull_request:
@@ -18,19 +18,20 @@ jobs:
           python-version: '3.x'
 
       - name: Install dependencies
-        run: pip install requests openai
+        run: pip install requests
 
       - name: Validate Secrets
         run: |
-          if [ -z "${{ secrets.AI_Code_Reviewer }}" ] || [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
-            echo "Missing required secrets (AI_Code_Reviewer or OPENAI_API_KEY). Exiting."
+          if [ -z "${{ secrets.token_github }}" ] || [ -z "${{ secrets.open_arena_token }}" ]; then
+            echo "Missing required secrets (token_github or open_arena_token). Exiting."
             exit 1
           fi
           echo "All required secrets are available."
 
       - name: Run AI Code Reviewer
         env:
-          GITHUB_TOKEN: ${{ secrets.AI_Code_Reviewer }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.token_github }}
+          OPEN_ARENA_TOKEN: ${{ secrets.open_arena_token }}
           GITHUB_PR_URL: ${{ github.event.pull_request.url }}
+          WORKFLOW_ID: "<your_workflow_id>"  # Replace with your actual workflow ID
         run: python3 scripts/ai_code_reviewer.py

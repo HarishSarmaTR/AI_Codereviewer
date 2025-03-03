@@ -1,16 +1,15 @@
 import os
 import requests
 import json
-from github import Github
 import re
 
 # Set your environment variables
 WORKFLOW_ID = os.getenv("WORKFLOW_ID")
 
 # Set up GitHub access
-g = Github(os.getenv("GITHUB_TOKEN"))
-repo = g.get_repo("REPOSITORY_NAME")
-pr = repo.get_pull(PULL_REQUEST_NUMBER)
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+REPOSITORY_NAME = os.getenv("REPOSITORY_NAME")
+PULL_REQUEST_NUMBER = os.getenv("PULL_REQUEST_NUMBER")
 oa_token = os.getenv("OPEN_ARENA_TOKEN")
 
 # Function to analyze code and return feedback using Open Arena API

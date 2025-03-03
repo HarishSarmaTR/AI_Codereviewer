@@ -30,6 +30,9 @@ jobs:
           fi
           echo "All required environment variables are available."
 
+      - name: List installed packages
+        run: pip list
+
       - name: Run Code Review with AI
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

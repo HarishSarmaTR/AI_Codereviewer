@@ -8,8 +8,8 @@ WORKFLOW_ID = os.getenv("WORKFLOW_ID")
 
 # Set up GitHub access
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-REPOSITORY_NAME = os.getenv("REPOSITORY_NAME")
-PULL_REQUEST_NUMBER = os.getenv("PULL_REQUEST_NUMBER")
+repo = os.getenv("REPOSITORY_NAME")
+pr = os.getenv("PULL_REQUEST_NUMBER")
 oa_token = os.getenv("OPEN_ARENA_TOKEN")
 
 # Function to analyze code and return feedback using Open Arena API

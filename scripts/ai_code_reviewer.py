@@ -3,9 +3,9 @@ import requests
 import json
 import time
 
-def fetch_diff(pr_url, token_github):
+def fetch_diff(pr_url, github_token):
     """Fetches the diff of the pull request from GitHub."""
-    headers = {'Authorization': f'token {token_github}', 'Accept': 'application/vnd.github.v3+json'}
+    headers = {'Authorization': f'token {github_token}', 'Accept': 'application/vnd.github.v3+json'}
     try:
         response = requests.get(f"{pr_url}/files", headers=headers)
         response.raise_for_status()

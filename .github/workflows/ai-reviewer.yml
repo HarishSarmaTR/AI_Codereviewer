@@ -22,8 +22,8 @@ jobs:
 
       - name: Validate Environment Variables
         run: |
-          if [ -z "${{ env.GH_TOKEN }}" ] || [ -z "${{ env.OPEN_ARENA_TOKEN }}" ]; then
-            echo "Missing required environment variables (TOKEN_GITHUB or OPEN_ARENA_TOKEN). Exiting."
+          if [ -z "${{ secrets.GH_TOKEN }}" ] || [ -z "${{ secrets.OPEN_ARENA_TOKEN }}" ]; then
+            echo "Missing required environment variables (GH_TOKEN or OPEN_ARENA_TOKEN). Exiting."
             exit 1
           fi
           echo "All required environment variables are available."

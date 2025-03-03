@@ -8,7 +8,7 @@ WORKFLOW_ID = os.getenv("WORKFLOW_ID")
 
 # Set up GitHub access
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-repo = os.getenv("REPOSITORY_NAME")
+repo = os.getenv("Code-review-with-AI")
 pr = os.getenv("PULL_REQUEST_NUMBER")
 oa_token = os.getenv("OPEN_ARENA_TOKEN")
 

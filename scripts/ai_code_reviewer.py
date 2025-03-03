@@ -1,7 +1,6 @@
 import os
 import requests
-import json
-import time
+import re
 
 def fetch_diff(pr_url, github_token):
     """Fetches the diff of the pull request from GitHub."""
@@ -11,73 +10,67 @@ def fetch_diff(pr_url, github_token):
         response.raise_for_status()
         files = response.json()
         diff = ''.join(file.get('patch', '') for file in files)
-        return diff
+        return files, diff
     except requests.RequestException as e:
         raise Exception(f"Error fetching PR diff: {e}")
 
-def review_code(diff, openai_api_key, retries=3, delay=10):
+def review_code(diff, openai_api_key):
     """Sends the diff to the OpenAI API for review and retrieves comments."""
     headers = {'Authorization': f'Bearer {openai_api_key}', 'Content-Type': 'application/json'}
     data = {
-        "model": "openai_gpt-4-turbo",
+        "model": "gpt-4-turbo",
         "messages": [
             {"role": "system", "content": "You are a code reviewer."},
-            {"role": "user", "content": f"Review the following code diff and suggest improvements:\n{diff}"}
+            {"role": "user", "content": f"Review the following code diff and suggest improvements with line numbers:\n{diff}"}
         ],
         "max_tokens": 800,
         "temperature": 0.5
     }
 
-    for attempt in range(1, retries + 1):
-        try:
-            response = requests.post("https://aiopenarena.gcs.int.thomsonreuters.com/v1/inference", headers=headers, json=data)
+    try:
+        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
+        print("Response Headers:", response.headers)
 
-            # Print the response headers to help debug rate limits
-            print("Response Headers:", response.headers)
+        if response.status_code == 200:
+            ai_response = response.json()
+            print(f"OpenAI API Usage: {ai_response.get('usage', {})}")
+            return ai_response['choices'][0]['message']['content'].strip()
+        else:
+            raise Exception(f"OpenAI Error: {response.status_code}, {response.text}")
+    except Exception as e:
+        print(f"Failed to review code: {e}")
+        return ""
 
-            if response.status_code == 200:
-                ai_response = response.json()
-                print(f"OpenAI API Usage: {ai_response.get('usage', {})}")
-                return ai_response['choices'][0]['message']['content'].strip()
-            elif response.status_code == 429:
-                # Check rate limit and calculate wait time
-                remaining = int(response.headers.get('X-RateLimit-Remaining', 0))
-                reset_time = int(response.headers.get('X-RateLimit-Reset', time.time()))
-                
-                if remaining == 0:
-                    wait_time = max(reset_time - time.time(), delay)
-                    print(f"Rate limit exceeded. Retrying in {wait_time}s...")
-                    time.sleep(wait_time)  # Wait until the rate limit resets
-                else:
-                    print(f"Rate limit exceeded. Retrying in {delay}s...")
-                    time.sleep(delay)  # Wait for a fixed delay before retrying
-            else:
-                raise Exception(f"OpenAI Error: {response.status_code}, {response.text}")
-        except Exception as e:
-            print(f"Attempt {attempt}/{retries} failed: {e}")
+def parse_ai_response(ai_response):
+    """Extract line-specific comments from the AI response."""
+    comments = []
+    lines = ai_response.split('\n')
+    for line in lines:
+        match = re.search(r'Line (\d+): (.+)', line)
+        if match:
+            line_number = int(match.group(1))
+            comment = match.group(2)
+            comments.append((line_number, comment))
+    return comments
 
-     # Fallback response when API fails after retries
-    return (
-        "AI review unavailable at the moment. Here are some general suggestions:\n\n"
-        "1. Ensure proper error handling is in place for edge cases.\n"
-        "2. Refactor complex functions into smaller, reusable methods.\n"
-        "3. Add comments where the logic might be unclear to others.\n"
-        "4. Check for any potential memory leaks or performance issues.\n"
-        "5. Follow coding standards and naming conventions for consistency."
-    )
-
-def post_comment(pr_url, comment, github_token):
-    """Posts a comment to the pull request on GitHub."""
+def post_line_comment(pr_number, file_path, line_number, comment, github_token):
+    """Posts a comment on a specific line of a pull request."""
     try:
         repo = os.getenv('GITHUB_REPOSITORY')
-        issue_number = pr_url.split('/')[-1]
-        comments_url = f"https://api.github.com/repos/{repo}/issues/{issue_number}/comments"
+        comments_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/comments"
         headers = {'Authorization': f'token {github_token}', 'Content-Type': 'application/json'}
-        response = requests.post(comments_url, headers=headers, json={"body": comment})
+        data = {
+            "body": comment,
+            "commit_id": "",  # Commit ID is needed here
+            "path": file_path,
+            "line": line_number,
+            "side": "RIGHT"
+        }
+        response = requests.post(comments_url, headers=headers, json=data)
         response.raise_for_status()
-        print("Comment posted successfully.")
+        print(f"Comment posted on line {line_number} of {file_path}.")
     except requests.RequestException as e:
-        raise Exception(f"Error posting comment: {e}")
+        raise Exception(f"Error posting line comment: {e}")
 
 def validate_environment_variables(*vars):
     """Validates the presence of required environment variables."""
@@ -88,7 +81,7 @@ def validate_environment_variables(*vars):
 def main():
     """Main function to fetch PR diff, review code, and post comments."""
     try:
-        validate_environment_variables("GITHUB_PR_URL", "GITHUB_TOKEN", "OPEN_ARENA_TOKEN")
+        validate_environment_variables("GITHUB_PR_URL", "GITHUB_TOKEN", "OPENAI_API_KEY")
         pr_url = os.getenv("GITHUB_PR_URL")
         github_token = os.getenv("GITHUB_TOKEN")
         openai_api_key = os.getenv("OPEN_ARENA_TOKEN")
@@ -99,7 +92,7 @@ def main():
 
         # Fetch PR diff
         print("Fetching PR diff...")
-        diff = fetch_diff(pr_url, github_token)
+        files, diff = fetch_diff(pr_url, github_token)
 
         # Review code
         print("Sending diff to OpenAI for review...")
@@ -107,9 +100,13 @@ def main():
         if not ai_review:
             ai_review = "No significant suggestions provided."
 
-        # Post review comment
-        print("Posting review comment...")
-        post_comment(pr_url, ai_review, github_token)
+        # Parse AI response for line-specific comments
+        comments = parse_ai_response(ai_review)
+
+        # Post line-specific comments
+        for file in files:
+            for line_number, comment in comments:
+                post_line_comment(pr_url.split('/')[-1], file['filename'], line_number, comment, github_token)
 
         print("AI review process completed successfully.")
 

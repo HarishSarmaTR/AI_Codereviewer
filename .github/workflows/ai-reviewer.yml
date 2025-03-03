@@ -20,18 +20,18 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Validate Secrets
+      - name: Validate Environment Variables
         run: |
-          if [ -z "${{ secrets.token_github }}" ] || [ -z "${{ secrets.open_arena_token }}" ]; then
-            echo "Missing required secrets (token_github or open_arena_token). Exiting."
+          if [ -z "${{ env.TOKEN_GITHUB }}" ] || [ -z "${{ env.OPEN_ARENA_TOKEN }}" ]; then
+            echo "Missing required environment variables (TOKEN_GITHUB or OPEN_ARENA_TOKEN). Exiting."
             exit 1
           fi
-          echo "All required secrets are available."
+          echo "All required environment variables are available."
 
       - name: Run Code review with AI
         env:
-          TOKEN_GITHUB: ${{ secrets.token_github }}
-          OPEN_ARENA_TOKEN: ${{ secrets.open_arena_token }}
+          TOKEN_GITHUB: ${{ env.TOKEN_GITHUB }}
+          OPEN_ARENA_TOKEN: ${{ env.OPEN_ARENA_TOKEN }}
           GITHUB_PR_URL: ${{ github.event.pull_request.url }}
-          WORKFLOW_ID: "8556ba87-acf8-4049-98a3-fc62a300656c"  # Replace with your actual workflow ID
+          WORKFLOW_ID: "80f448d2-fd59-440f-ba24-ebc3014e1fdf"  # Replace with your actual workflow ID
         run: python3 scripts/ai_code_reviewer.py

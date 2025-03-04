@@ -96,9 +96,8 @@ def main():
         validate_environment_variables("GITHUB_PR_URL", "GITHUB_TOKEN")
         pr_url = os.getenv("GITHUB_PR_URL")
         github_token = os.getenv("GITHUB_TOKEN")
-        open_arena_token = "your_open_arena_token_here"
-        workflow_id = "80f448d2-fd59-440f-ba24-ebc3014e1fdf"
         open_arena_token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlJERTBPVEF3UVVVMk16Z3hPRUpGTkVSRk5qUkRNakkzUVVFek1qZEZOVEJCUkRVMlJrTTRSZyJ9.eyJodHRwczovL3RyLmNvbS9mZWRlcmF0ZWRfdXNlcl9pZCI6IjYxMjYxNzUiLCJodHRwczovL3RyLmNvbS9mZWRlcmF0ZWRfcHJvdmlkZXJfaWQiOiJUUlNTTyIsImh0dHBzOi8vdHIuY29tL2xpbmtlZF9kYXRhIjpbeyJzdWIiOiJvaWRjfHNzby1hdXRofFRSU1NPfDYxMjYxNzUifV0sImh0dHBzOi8vdHIuY29tL2V1aWQiOiJjNmNjODJmNy1kMzQ3LTRjZGEtOTViZi1hNmU3NzZmNmViYmMiLCJodHRwczovL3RyLmNvbS9hc3NldElEIjoiYTIwODE5OSIsImlzcyI6Imh0dHBzOi8vYXV0aC50aG9tc29ucmV1dGVycy5jb20vIiwic3ViIjoiYXV0aDB8NjU4MDQyYjA2NGI3OWEyY2RjZDU2MDMwIiwiYXVkIjpbIjQ5ZDcwYTU4LTk1MDktNDhhMi1hZTEyLTRmNmUwMGNlYjI3MCIsImh0dHBzOi8vbWFpbi5jaWFtLnRob21zb25yZXV0ZXJzLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDEwODA3MTcsImV4cCI6MTc0MTE2NzExNywic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCIsImF6cCI6InRnVVZad1hBcVpXV0J5dXM5UVNQaTF5TnlvTjJsZmxJIn0.X_HzfW4Mb1rOdc0xYg0QWu7zjURnb8JzU4s8N08THvP75cMKLKtHP0UR9xw422fIp6Z1_PW1jPEDTr77qjWlzE19AbGU-M1N0yVI3Y0kwki3EYJbAikPmEe6tV0NEM96f6rzgVBgOQeFAviHIoY2kimUc7oeKBWieLMPbktarD_SYCUyCqeW5RgJ-SAUT_kp5e_ukKJTG9y5u9SvN3mU8Fgos7ZwL0dLT3QGQj4dSQvh2x-mUpA7qTwvRjzm4Sgm2w_wURip6jVYj5qG3PqtLNsTO6LNe0TM-JwBHFRYT8Ti29g6w7HHJXLuURBxvefCyLtqjvyuKZT9jDyrrcC5pA"
+        workflow_id = "80f448d2-fd59-440f-ba24-ebc3014e1fdf"
 
         print(f"PR URL: {pr_url}")
         print(f"GitHub Token: {'Provided' if github_token else 'Missing'}")
@@ -110,7 +109,7 @@ def main():
 
         # Review code
         print("Sending diff to OpenAI for review...")
-        ai_review = review_code(diff, open_arena_token)
+        ai_review = review_code(diff, open_arena_token, workflow_id)
         if not ai_review:
             ai_review = "No significant suggestions provided."
 
@@ -120,7 +119,7 @@ def main():
         # Post line-specific comments
         for file in files:
             for line_number, comment in comments:
-                post_line_comment(pr_url.split('/')[-1], file['filename'], line_number, comment, github_token)
+                post_line_comment(pr_url.split('/')[-1], file['filename'], line_number, comment, github_token, get_latest_commit_id(pr_url, github_token))
 
         print("AI review process completed successfully.")
 

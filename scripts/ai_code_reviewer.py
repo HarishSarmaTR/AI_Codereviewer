@@ -1,134 +1,114 @@
-import os
+from operator import contains
+from queue import Empty
+from tokenize import Number
+from turtle import position
+from urllib import response
+import openai
+from langchain_openai import AzureChatOpenAI
+from openai import AzureOpenAI
 import requests
+import json
+from langchain.schema import HumanMessage
+import os
 import re
-
-def fetch_diff(pr_url, github_token):
-    """Fetches the diff of the pull request from GitHub."""
-    headers = {'Authorization': f'token {github_token}', 'Accept': 'application/vnd.github.v3+json'}
-    try:
-        response = requests.get(f"{pr_url}/files", headers=headers)
-        response.raise_for_status()
-        files = response.json()
-        diff = ''.join(file.get('patch', '') for file in files)
-        return files, diff
-    except requests.RequestException as e:
-        raise Exception(f"Error fetching PR diff: {e}")
+from github import Github
 
 
-def review_code(diff, open_arena_token, workflow_id):
-    headers = {'Authorization': f'Bearer {open_arena_token}', 'Content-Type': 'application/json'}
-    data = {
-        "workflow_id": workflow_id,
-        "query": diff,
-        "is_persistence_allowed": False,
-        "modelparams": {
-            "openai_gpt-4-turbo": {
-                "system_prompt": "You are a code reviewer.",
-                "temperature": 0.5,
-                "max_tokens": 4000
-            }
-        }
-    }
+# Set your workspace id
+workspace_id = "AIspacelaBi"  # Open workspace console to get your workspace_id
 
-    try:
-        response = requests.post("https://aiopenarena.gcs.int.thomsonreuters.com/v1/inference", headers=headers, json=data)
-        print("Response Headers:", response.headers)
+# Set your model name, for available model names please refer documentation
+model_name = "gpt-4-turbo"
 
-        if response.status_code == 200:
-            ai_response = response.json()
-            print(f"OpenAI API Usage: {ai_response.get('usage', {})}")
-            return ai_response['choices'][0]['message']['content'].strip()
-        else:
-            raise Exception(f"OpenAI Error: {response.status_code}, {response.text}")
-    except Exception as e:
-        print(f"Failed to review code: {e}")
-        return ""
+# Create a dictionary payload with workspace_id and model_name
+payload = {
+    "workspace_id": workspace_id,
+    "model_name":model_name,
+    "oai_access":"apim"
+}
+# Define the URL for the request
+url = "https://aiplatform.gcs.int.thomsonreuters.com/v1/openai/token"
 
-def parse_ai_response(ai_response):
-    """Extract line-specific comments from the AI response."""
-    comments = []
-    lines = ai_response.split('\n')
-    for line in lines:
-        match = re.search(r'Line (\d+): (.+)', line)
-        if match:
-            line_number = int(match.group(1))
-            comment = match.group(2)
-            comments.append((line_number, comment))
-    return comments
+# Send a POST request to the URL with headers and the payload
+resp = requests.post(url,headers=None, json=payload)
 
-def post_line_comment(pr_number, file_path, line_number, comment, github_token, commit_id):
-    """Posts a comment on a specific line of a pull request."""
-    try:
-        repo = os.getenv('GITHUB_REPOSITORY')
-        comments_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/comments"
-        headers = {'Authorization': f'token {github_token}', 'Content-Type': 'application/json'}
-        data = {
-            "body": comment,
-            "commit_id": commit_id,
-            "path": file_path,
-            "line": line_number,
-            "side": "RIGHT"
-        }
-        response = requests.post(comments_url, headers=headers, json=data)
-        response.raise_for_status()
-        print(f"Comment posted on line {line_number} of {file_path}.")
-    except requests.RequestException as e:
-        raise Exception(f"Error posting line comment: {e}")
+# Load the response content as JSON
+credentials = json.loads(resp.content)
+# Check if the credentials contain a token and openai_endpoints
+if "openai_key" in credentials :
+    success_flag = 1
+else:
+    success_flag = 0
+    print("Incorrect Workspace ID or Model Name")
 
-def get_latest_commit_id(pr_url, github_token):
-    """Fetches the latest commit ID for the pull request."""
-    headers = {'Authorization': f'token {github_token}', 'Accept': 'application/vnd.github.v3+json'}
-    try:
-        response = requests.get(f"{pr_url}/commits", headers=headers)
-        response.raise_for_status()
-        commits = response.json()
-        return commits[-1]['sha']  # Get the latest commit ID
-    except requests.RequestException as e:
-        raise Exception(f"Error fetching latest commit ID: {e}")
+if success_flag == 1:
+    # Assign the OpenAI URL and Key from the credentials
+    OPENAI_BASE_URL = credentials["openai_endpoint"]
+    OPENAI_API_KEY = credentials["openai_key"]
 
-def validate_environment_variables(*vars):
-    """Validates the presence of required environment variables."""
-    missing_vars = [var for var in vars if not os.getenv(var)]
-    if missing_vars:
-        raise EnvironmentError(f"Missing required environment variables: {', '.join(missing_vars)}")
+    # If the credentials were successful, print the OpenAI URL and Key
+    print(f"OpenAI URL - {OPENAI_BASE_URL}, and OpenAI Key - {OPENAI_API_KEY}\n\n")
 
-def main():
-    """Main function to fetch PR diff, review code, and post comments."""
-    try:
-        validate_environment_variables("GITHUB_PR_URL", "GITHUB_TOKEN")
-        pr_url = os.getenv("GITHUB_PR_URL")
-        github_token = os.getenv("GITHUB_TOKEN")
-        open_arena_token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlJERTBPVEF3UVVVMk16Z3hPRUpGTkVSRk5qUkRNakkzUVVFek1qZEZOVEJCUkRVMlJrTTRSZyJ9.eyJodHRwczovL3RyLmNvbS9mZWRlcmF0ZWRfdXNlcl9pZCI6IjYxMjYxNzUiLCJodHRwczovL3RyLmNvbS9mZWRlcmF0ZWRfcHJvdmlkZXJfaWQiOiJUUlNTTyIsImh0dHBzOi8vdHIuY29tL2xpbmtlZF9kYXRhIjpbeyJzdWIiOiJvaWRjfHNzby1hdXRofFRSU1NPfDYxMjYxNzUifV0sImh0dHBzOi8vdHIuY29tL2V1aWQiOiJjNmNjODJmNy1kMzQ3LTRjZGEtOTViZi1hNmU3NzZmNmViYmMiLCJodHRwczovL3RyLmNvbS9hc3NldElEIjoiYTIwODE5OSIsImlzcyI6Imh0dHBzOi8vYXV0aC50aG9tc29ucmV1dGVycy5jb20vIiwic3ViIjoiYXV0aDB8NjU4MDQyYjA2NGI3OWEyY2RjZDU2MDMwIiwiYXVkIjpbIjQ5ZDcwYTU4LTk1MDktNDhhMi1hZTEyLTRmNmUwMGNlYjI3MCIsImh0dHBzOi8vbWFpbi5jaWFtLnRob21zb25yZXV0ZXJzLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDEwODA3MTcsImV4cCI6MTc0MTE2NzExNywic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCIsImF6cCI6InRnVVZad1hBcVpXV0J5dXM5UVNQaTF5TnlvTjJsZmxJIn0.X_HzfW4Mb1rOdc0xYg0QWu7zjURnb8JzU4s8N08THvP75cMKLKtHP0UR9xw422fIp6Z1_PW1jPEDTr77qjWlzE19AbGU-M1N0yVI3Y0kwki3EYJbAikPmEe6tV0NEM96f6rzgVBgOQeFAviHIoY2kimUc7oeKBWieLMPbktarD_SYCUyCqeW5RgJ-SAUT_kp5e_ukKJTG9y5u9SvN3mU8Fgos7ZwL0dLT3QGQj4dSQvh2x-mUpA7qTwvRjzm4Sgm2w_wURip6jVYj5qG3PqtLNsTO6LNe0TM-JwBHFRYT8Ti29g6w7HHJXLuURBxvefCyLtqjvyuKZT9jDyrrcC5pA"
-        workflow_id = "80f448d2-fd59-440f-ba24-ebc3014e1fdf"
+# Ensure you have set your API key in your environment variables
+api_key = os.getenv(OPEN_ARENA_TOKEN)
+openai.api_key = api_key
+g = Github("GITHUB_ACCESS_TOKEN")
+# Replace 'your_username/your_repo' with the specific repo you want to analyze
+repo = g.get_repo("Code-review-with-AI")
 
-        print(f"PR URL: {pr_url}")
-        print(f"GitHub Token: {'Provided' if github_token else 'Missing'}")
-        print(f"OpenAI API Key: {'Provided' if open_arena_token else 'Missing'}")
+print("Repo Name" + repo.name)  # Repository name
+pr = repo.get_pull(PULL_REQUEST_NUMBER)
 
-        # Fetch PR diff
-        print("Fetching PR diff...")
-        files, diff = fetch_diff(pr_url, github_token)
+# Function to analyze code and return feedback
+def analyze_code(file_content):   
+    api_version = '2024-02-01' # this might change in the future
 
-        # Review code
-        print("Sending diff to OpenAI for review...")
-        ai_review = review_code(diff, open_arena_token, workflow_id)
-        if not ai_review:
-            ai_review = "No significant suggestions provided."
+    client = AzureOpenAI(
+        api_key=OPENAI_API_KEY,  
+        api_version=api_version,
+        base_url=f"{OPENAI_BASE_URL}/openai/deployments/{model_name}"
+    )
+    print("Reviewing code by AI, Please wait....")
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=[
+            #{ "role": "assistant", "content": file_content},
+            #{ "role" : "user", "content" : file_content},
+            { "role": "assistant", "content": [  
+                { 
+                    "type": "text", 
+                    "text": "Give comments for issues with actual line number in the file_content:" + file_content
+                }
+            ] } 
+        ],
+        max_tokens=2000
+    )
+    return response
 
-        # Parse AI response for line-specific comments
-        comments = parse_ai_response(ai_review)
+for file in pr.get_files():
+        resonse = analyze_code(file.patch)
+        if resonse:
+            comment_body = resonse.choices[0].message.content
+            print(comment_body)
+            comment_body = comment_body.splitlines()
+            
+        for commit_id in pr.get_commits():
+            varrr = commit_id
+            for line_content in comment_body:
+                if(len(line_content) > 0):
+                    if "Line " in line_content or "Lines " in line_content or "line " in line_content or "lines " in line_content:
+                        line_position = int((re.findall(r'\d+', line_content))[1])
+                        if "Lines " in line_content or "lines " in line_content:
+                            line_position = int((re.findall(r'\d+', line_content))[2])
+                        pr.create_review_comment(
+                            body = line_content,
+                            commit = varrr,
+                            path = file.filename, 
+                            line = line_position,
+                            side = "LEFT"
+                            )
+                        print(f"Commented on PR #{pr.number}: {comment_body}")
+                        pr.create_issue_comment("Reviewed code and added some comments, please have a look and resolve")
+                        print(f"Commented on PR #{pr.number}: {comment_body}")
 
-        # Post line-specific comments
-        for file in files:
-            for line_number, comment in comments:
-                post_line_comment(pr_url.split('/')[-1], file['filename'], line_number, comment, github_token, get_latest_commit_id(pr_url, github_token))
-
-        print("AI review process completed successfully.")
-
-    except EnvironmentError as env_err:
-        print(f"Environment Error: {env_err}")
-    except Exception as e:
-        print(f"Error: {e}")
-
-if __name__ == "__main__":
-    main()
+print("Code review by AI has been completed, please check PR for details...")

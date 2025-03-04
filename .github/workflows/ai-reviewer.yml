@@ -36,7 +36,7 @@ jobs:
       - name: Run Code Review with AI
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          OPEN_ARENA_TOKEN: ${{ secrets.OPEN_ARENA_TOKEN }}
+          #OPEN_ARENA_TOKEN: ${{ secrets.OPEN_ARENA_TOKEN }}
           GITHUB_PR_URL: ${{ github.event.pull_request.url }}
           WORKFLOW_ID: "80f448d2-fd59-440f-ba24-ebc3014e1fdf"  # Replace with your actual workflow ID
         run: python3 scripts/ai_code_reviewer.py

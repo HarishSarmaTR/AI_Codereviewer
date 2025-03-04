@@ -25,7 +25,7 @@ def review_code(diff, open_arena_token, workflow_id):
             "openai_gpt-4-turbo": {
                 "system_prompt": "You are a code reviewer.",
                 "temperature": 0.5,
-                "max_tokens": 800
+                "max_tokens": 4000
             }
         }
     }

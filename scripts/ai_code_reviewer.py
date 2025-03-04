@@ -14,18 +14,20 @@ def fetch_diff(pr_url, github_token):
     except requests.RequestException as e:
         raise Exception(f"Error fetching PR diff: {e}")
 
+
 def review_code(diff, open_arena_token, workflow_id):
-    """Sends the diff to the OpenAI API for review and retrieves comments."""
     headers = {'Authorization': f'Bearer {open_arena_token}', 'Content-Type': 'application/json'}
     data = {
         "workflow_id": workflow_id,
-        "model": "gpt-4-turbo",
-        "messages": [
-            {"role": "system", "content": "You are a code reviewer."},
-            {"role": "user", "content": f"Review the following code diff and suggest improvements with line numbers:\n{diff}"}
-        ],
-        "max_tokens": 800,
-        "temperature": 0.5
+        "query": diff,
+        "is_persistence_allowed": False,
+        "modelparams": {
+            "openai_gpt-4-turbo": {
+                "system_prompt": "You are a code reviewer.",
+                "temperature": 0.5,
+                "max_tokens": 800
+            }
+        }
     }
 
     try:

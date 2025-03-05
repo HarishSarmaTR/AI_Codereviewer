@@ -4,7 +4,6 @@ from tokenize import Number
 from turtle import position
 from urllib import response
 import openai
-from langchain_openai import AzureChatOpenAI
 from openai import AzureOpenAI
 import requests
 import json
@@ -12,7 +11,6 @@ from langchain.schema import HumanMessage
 import os
 import re
 from github import Github
-
 
 # Set your workspace id
 workspace_id = "AIspacelaBi"  # Open workspace console to get your workspace_id
@@ -50,11 +48,11 @@ if success_flag == 1:
     print(f"OpenAI URL - {OPENAI_BASE_URL}, and OpenAI Key - {OPENAI_API_KEY}\n\n")
 
 # Ensure you have set your API key in your environment variables
-api_key = os.getenv(OPEN_ARENA_TOKEN)
+api_key = os.getenv(OPENAI_API_KEY)
 openai.api_key = api_key
-g = Github("GITHUB_ACCESS_TOKEN")
+g = Github("GITHUB_TOKEN")
 # Replace 'your_username/your_repo' with the specific repo you want to analyze
-repo = g.get_repo("Code-review-with-AI")
+repo = g.get_repo("Code review with AI")
 
 print("Repo Name" + repo.name)  # Repository name
 pr = repo.get_pull(PULL_REQUEST_NUMBER)

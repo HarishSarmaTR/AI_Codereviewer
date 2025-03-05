@@ -55,7 +55,7 @@ g = Github("GITHUB_TOKEN")
 repo = g.get_repo("Code review with AI")
 
 print("Repo Name" + repo.name)  # Repository name
-pr = repo.get_pull(PULL_REQUEST_NUMBER)
+pr = repo.get_pull()
 
 # Function to analyze code and return feedback
 def analyze_code(file_content):   
